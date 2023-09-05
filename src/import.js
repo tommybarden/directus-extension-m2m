@@ -29,7 +29,9 @@ export default defineHook(({ init, action }, { services, getSchema, database }) 
     async function importBase(schema) {
         const { ItemsService } = services;
 
-        const templates = ['settings', 'roles', 'dashboards', 'flows', 'operations', 'panels', 'permissions', 'translations']
+        const templates = ['settings', 'roles', 'permissions', 'flows', 'operations', 'dashboards', 'panels', 'translations']
+        const admin = await database.select('id').from('directus_roles').where('admin_access', true).first()
+        let old_admin = admin
 
         await templates.reduce(async (prev, template) => {
             // Wait for the previous template to finish processing
@@ -40,12 +42,42 @@ export default defineHook(({ init, action }, { services, getSchema, database }) 
                 const path = '/directus/templates/' + template + '.json'
                 const file_content = fs.readFileSync(path, 'utf8')
                 if(file_content) {
-                    const obj = JSON.parse(file_content)
-                    if(obj.length) {
+
+                    let obj = JSON.parse(file_content)
+                    if(Object.keys(obj).length) {
+
+                        if('roles' === template) {
+                            old_admin = obj.find(role => role.admin_access)
+                            obj = obj.filter(role => !role.admin_access)
+                        }
+
+                        // Remove all permissions regarding admin
+                        if(old_admin && 'permissions' === template) {
+                            obj = obj.filter(role => role.role !== old_admin.id)
+                        }
+
+                        // Set current admin as creator of content
+                        if(admin && ('operations' === template || 'dashboards' === template || 'flows' === template || 'panels' === template)) {
+                            obj.forEach(row => delete row.user_created)
+                        }
+
+                        // Panels are not created yet, remove from array
+                        if('dashboards' === template) {
+                            obj.forEach(row => delete row.panels)
+                        }
+
                         const service = new ItemsService('directus_' + template, {schema, knex: database})
-                        await service.upsertSingleton(obj).then(()=>{
-                            log(template + ' imported!')
-                        })
+
+                        if('object' === typeof Object.values(obj)[0]) {
+                            await service.upsertMany(obj).then(()=>{
+                                log(template + ' imported (many)!')
+                            })
+                        } else {
+                            await service.upsertSingleton(obj).then(()=>{
+                                log(template + ' imported (singleton)!')
+                            })
+                        }
+
                     } else {
                         log(template + ' array empty. Skipping.')
                     }
