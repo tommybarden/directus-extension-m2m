@@ -2,13 +2,17 @@
 	"name": "directus-extension-m2m",
 	"description": "Directus extension for exporting/importing data structure between different installs",
 	"icon": "extension",
-	"version": "1.0.0",
+	"version": "1.0.3",
 	"keywords": [
 		"directus",
 		"directus-extension",
 		"directus-custom-bundle"
 	],
 	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tommybarden/directus-extension-m2m.git"
+	},
 	"directus:extension": {
 		"type": "bundle",
 		"path": {
@@ -41,6 +45,7 @@
 	},
 	"dependencies": {
 		"@directus/composables": "^10.1.1",
+		"@directus/sdk": "^11.0.3",
 		"lodash": "^4.17.21"
 	}
 }

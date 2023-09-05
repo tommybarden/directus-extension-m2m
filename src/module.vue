@@ -68,43 +68,15 @@ export default {
 			})
 		}
 
-		function getSnapshot() {
-			const exportCollections = collections.value
-					.map(({ collection, meta, schema }) => ({ collection, meta, schema: schema !== null ? {} : null }));
+		async function getSnapshot() {
 
-			const fields = collections.value
-					.map(c => fieldsStore.getFieldsForCollection(c.collection))
-					.flat()
-					.map(({ name, ...field }) => {
-						const f = field;
-						if (field.meta) {
-							const { id, ...meta } = field.meta;
-							f.meta = meta;
-						}
-						return f;
-					});
+			await api.get('/schema/snapshot').then(result => {
+				if(result.data) {
+					const data = JSON.stringify(result.data.data, null, 4);
 
-			const relations = collections.value
-					.map(c => (relationsStore.relations).filter(r => r.collection === c.collection))
-					.flat()
-					.map((rel) => {
-						const r = rel;
-						if (rel.meta) {
-							const { id, ...meta } = rel.meta;
-							r.meta = meta;
-						}
-						return r;
-					});
-
-			const schema = {
-				collections: exportCollections,
-				fields,
-				relations,
-			};
-
-			const data = JSON.stringify(schema, null, 4);
-
-			downloadFile(data, 'collections')
+					downloadFile(data, 'snapshot')
+				}
+			})
 		}
 
 		return {
